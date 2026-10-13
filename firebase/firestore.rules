@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /phonePairings/{pairingId} {
+      function active() {
+        return get(/databases/$(database)/documents/phonePairings/$(pairingId)).data.active == true;
+      }
+      function ownDevice(uid) { return request.auth != null && request.auth.uid == uid; }
+      allow get: if request.auth != null && resource.data.active == true
+        && exists(/databases/$(database)/documents/phonePairings/$(pairingId)/devices/$(request.auth.uid));
+      allow list, create, update, delete: if false;
+      match /devices/{uid} {
+        allow get: if ownDevice(uid) && active();
+        allow list: if false;
+        allow create: if ownDevice(uid) && active()
+          && request.resource.data.keys().hasAll(['joinSecret', 'fcmToken'])
+          && request.resource.data.keys().hasOnly(['joinSecret', 'fcmToken'])
+          && request.resource.data.joinSecret is string
+          && request.resource.data.joinSecret == get(/databases/$(database)/documents/phonePairings/$(pairingId)).data.joinSecret
+          && request.resource.data.fcmToken is string
+          && request.resource.data.fcmToken.size() > 0 && request.resource.data.fcmToken.size() <= 4096;
+        allow update: if ownDevice(uid) && active()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken'])
+          && request.resource.data.fcmToken is string
+          && request.resource.data.fcmToken.size() > 0 && request.resource.data.fcmToken.size() <= 4096;
+        allow delete: if ownDevice(uid);
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

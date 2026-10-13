@@ -1,0 +1,21 @@
+# Build output and tool caches
+.gradle/
+.kotlin/
+build/
+**/build/
+captures/
+*.apk
+*.aab
+
+# This PC's own paths
+local.properties
+.idea/
+*.iml
+
+# Keys and sign-in files: never committed
+google-services.json
+*service-account*.json
+*firebase-adminsdk*.json
+*.keystore
+*.jks
+keystore.properties
